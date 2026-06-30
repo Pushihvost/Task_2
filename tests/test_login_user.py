@@ -1,7 +1,7 @@
 ﻿from api.user_api import UserApi
 from data.message_error import ERROR_INCORRECT_EMAIL_OR_PASSWORD
 import allure
-
+import pytest
 class TestLoginUser:
 
     @allure.title('Тест: Успешная авторизация существующего пользователя')
@@ -21,27 +21,27 @@ class TestLoginUser:
         assert body["success"] == True
 
     @allure.title('Тест: Авторизация с неверным логином или паролем')
-    def test_login_with_invalid_email_or_password(self, authorized_user):
-        user = authorized_user['user']
-
-        login_payload_invalid = [
-            {
-            'email': user['email'],
-            'password': "no_correct_password"
-            },
-            {
-            'email': "no_correct_email",
-            'password': user['password']
-            }
+    @pytest.mark.parametrize(
+        "field, value",
+        [
+            ("email", "wrong_email"),
+            ("password", "wrong_password"),
         ]
+    )
+    def test_login_no_correct_login_or_password(self, authorized_user, field, value):
+        user = authorized_user["user"]
 
-        for login_payload in login_payload_invalid:
-            response = UserApi().login_user(login_payload)
+        login_payload = {
+            "email": user["email"],
+            "password": user["password"]
+        }
 
-            body = response.json()
+        login_payload[field] = value
 
-            assert response.status_code == 401
-            assert body["message"] == ERROR_INCORRECT_EMAIL_OR_PASSWORD
+        response = UserApi().login_user(login_payload)
+
+        assert response.status_code == 401
+        assert response.json()["message"] == ERROR_INCORRECT_EMAIL_OR_PASSWORD
 
 
 
